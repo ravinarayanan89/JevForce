@@ -8,6 +8,14 @@
 
 JevForce is a small, dependency-free Apex SDK for TypeSafe AI's Jev model. It exposes Choice, Score, and Noul as strongly typed Apex methods. It is not an agent framework, workflow engine, or generative-AI wrapper.
 
+## Watch the demo
+
+[![JevForce: Bringing Jev to Salesforce — Faster, Cheaper AI Decisions with Apex](https://i.ytimg.com/vi/5BBIcT-jpnw/hqdefault.jpg)](https://youtu.be/5BBIcT-jpnw)
+
+**[JevForce: Bringing Jev to Salesforce | Faster, Cheaper AI Decisions with Apex](https://youtu.be/5BBIcT-jpnw)**
+
+Watch the JevForce demo for a practical walkthrough of structured Jev decisions inside Salesforce Apex.
+
 ## Benchmark snapshot
 
 JevForce includes a reproducible comparison between Jev and Salesforce-managed Agentforce Models API · Opus 4.8. Both providers received the same synthetic Case and Lead state and the same semantic decision criteria. The run requested seven judgments in total: two Choice decisions, two Score decisions, and three Noul probabilities.
