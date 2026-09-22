@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JevForce Live Benchmark — Jev vs Agentforce Models API</title>
+  <style>
+    :root {
+      --ink: #181818;
+      --muted: #5c5c5c;
+      --line: #c9c9c9;
+      --surface: #ffffff;
+      --surface-2: #f3f3f3;
+      --blue: #0176d3;
+      --blue-dark: #014486;
+      --blue-soft: #eef4ff;
+      --green: #2e844a;
+      --green-soft: #ebf7e9;
+      --purple: #7526b8;
+      --purple-soft: #f5f0ff;
+      --orange: #dd7a01;
+      --shadow: 0 2px 4px rgba(0, 0, 0, .12);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #eef4f8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .page { max-width: 1240px; margin: 0 auto; padding: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .hero { overflow: hidden; }
+    .hero__band { height: 8px; background: linear-gradient(90deg, var(--blue), #1b96ff 55%, var(--purple)); }
+    .hero__body { padding: 34px 38px 30px; }
+    .eyebrow { color: var(--blue-dark); font-size: .75rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin: 7px 0 10px; font-size: clamp(2rem, 4vw, 3.5rem); line-height: 1.06; letter-spacing: -.035em; }
+    h2 { margin-bottom: 18px; font-size: 1.55rem; line-height: 1.25; }
+    h3 { margin-bottom: 12px; font-size: 1.05rem; }
+    .lede { max-width: 830px; color: #3e3e3c; font-size: 1.12rem; }
+    .stamp { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    .pill { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border: 1px solid #a8b7c7; background: #f7fbff; color: #032d60; font-size: .78rem; font-weight: 700; }
+    .pill--green { border-color: #91c69f; background: var(--green-soft); color: #194e31; }
+
+    .section { margin-top: 22px; padding: 28px; }
+    .section-intro { max-width: 850px; color: var(--muted); }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .metric { min-height: 150px; padding: 20px; border: 1px solid #d8dde6; background: #fff; }
+    .metric--winner { border-top: 4px solid var(--green); background: linear-gradient(180deg, var(--green-soft), #fff 68%); }
+    .metric__label { min-height: 38px; color: var(--muted); font-size: .78rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+    .metric__value { color: #032d60; font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+    .metric__detail { margin-top: 10px; color: var(--muted); font-size: .83rem; }
+    .metric__detail strong { color: var(--green); }
+
+    .callout { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-top: 18px; padding: 18px 20px; border-left: 5px solid var(--blue); background: var(--blue-soft); }
+    .callout__number { color: var(--blue-dark); font-size: 2rem; font-weight: 800; }
+    .callout p { margin: 0; }
+
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .provider { padding: 22px; border: 1px solid var(--line); }
+    .provider--jev { border-top: 5px solid var(--green); background: linear-gradient(180deg, var(--green-soft), #fff 160px); }
+    .provider--models { border-top: 5px solid var(--purple); background: linear-gradient(180deg, var(--purple-soft), #fff 160px); }
+    .provider__head { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+    .provider__name { font-size: 1.3rem; font-weight: 800; }
+    .provider__model { color: var(--muted); font-size: .8rem; }
+    .provider__latency { color: #032d60; font-size: 2rem; font-weight: 800; white-space: nowrap; }
+
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid #e5e5e5; text-align: left; vertical-align: top; }
+    th { background: var(--surface-2); color: #3e3e3c; font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: 0; }
+    .good { color: var(--green); font-weight: 800; }
+    .neutral { color: var(--blue-dark); font-weight: 700; }
+
+    .bar-row { display: grid; grid-template-columns: 145px 1fr 82px; gap: 12px; align-items: center; margin: 10px 0; font-size: .84rem; }
+    .bar-track { height: 14px; overflow: hidden; background: #e5e5e5; }
+    .bar { height: 100%; min-width: 3px; }
+    .bar--jev { background: var(--green); }
+    .bar--models { background: var(--purple); }
+    .bar-value { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .scenario { margin-top: 22px; }
+    .scenario__header { display: flex; justify-content: space-between; gap: 20px; align-items: start; padding: 24px 28px; border-bottom: 1px solid var(--line); }
+    .scenario__header p { margin-bottom: 0; color: var(--muted); }
+    .scenario__badge { flex: 0 0 auto; padding: 7px 11px; background: #032d60; color: white; font-size: .78rem; font-weight: 800; }
+    .scenario__body { padding: 26px 28px 30px; }
+    .scenario-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .mini-title { margin: 22px 0 8px; color: #032d60; font-size: .78rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+
+    .decision { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .decision:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+    .decision__top { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+    .decision__answer { color: #032d60; font-size: 1.15rem; font-weight: 800; }
+    .prob { margin: 9px 0; }
+    .prob__line { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 4px; color: #444; font-size: .78rem; }
+    .prob__track { height: 8px; overflow: hidden; background: #ecebea; }
+    .prob__fill { height: 100%; background: var(--blue); }
+    .prob__fill--jev { background: var(--green); }
+    .prob__fill--models { background: var(--purple); }
+    .prob--muted { opacity: .68; }
+
+    .score-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+    .score-box { padding: 14px; background: var(--surface-2); border: 1px solid #ddd; }
+    .score-box strong { display: block; color: #032d60; font-size: 1.45rem; }
+    .score-box span { color: var(--muted); font-size: .75rem; }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .insight { padding: 18px; border-left: 4px solid var(--blue); background: var(--surface-2); }
+    .insight strong { display: block; margin-bottom: 6px; color: #032d60; }
+    .insight p { margin: 0; color: var(--muted); font-size: .86rem; }
+
+    .flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 12px; align-items: center; margin-top: 20px; }
+    .flow__step { min-height: 112px; padding: 16px; border: 1px solid var(--line); background: white; }
+    .flow__step strong { display: block; margin-bottom: 6px; color: #032d60; }
+    .flow__step span { color: var(--muted); font-size: .82rem; }
+    .flow__arrow { color: var(--blue); font-size: 1.4rem; font-weight: 800; }
+
+    details { margin-top: 12px; border: 1px solid var(--line); background: white; }
+    summary { cursor: pointer; padding: 14px 16px; color: #032d60; font-weight: 800; }
+    pre { max-height: 420px; overflow: auto; margin: 0; padding: 18px; border-top: 1px solid var(--line); background: #181818; color: #f3f3f3; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .fineprint { color: var(--muted); font-size: .78rem; }
+    footer { padding: 26px 4px 40px; color: var(--muted); font-size: .78rem; text-align: center; }
+
+    @media (max-width: 880px) {
+      .metric-grid, .insight-grid { grid-template-columns: 1fr 1fr; }
+      .comparison, .scenario-grid { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow__arrow { transform: rotate(90deg); justify-self: center; }
+    }
+    @media (max-width: 560px) {
+      .page { padding: 10px; }
+      .hero__body, .section, .scenario__body, .scenario__header { padding: 20px; }
+      .metric-grid, .insight-grid, .score-pair { grid-template-columns: 1fr; }
+      .bar-row { grid-template-columns: 110px 1fr 65px; gap: 7px; }
+      .scenario__header { display: block; }
+      .scenario__badge { display: inline-block; margin-top: 12px; }
+    }
+    @media print {
+      body { background: white; }
+      .page { max-width: none; padding: 0; }
+      .card { box-shadow: none; break-inside: avoid; }
+      details { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero card">
+      <div class="hero__band"></div>
+      <div class="hero__body">
+        <div class="eyebrow">Live Salesforce Apex benchmark</div>
+        <h1>Structured judgment,<br>measured in the real org.</h1>
+        <p class="lede">Jev and Agentforce Models API · Opus 4.8 evaluated the same semantic state and decision criteria for a Case and a Lead. This report preserves the observed latency, token usage, probabilities, confidence, and response-contract differences.</p>
+        <div class="stamp">
+          <span class="pill">Captured 22 Sep 2026 · 10:46:18 UTC</span>
+          <span class="pill">Salesforce API 67.0</span>
+          <span class="pill pill--green">Synthetic data · zero DML</span>
+          <span class="pill pill--green">Anonymous Apex compiled and succeeded</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="section card">
+      <div class="eyebrow">The result at a glance</div>
+      <h2>Seven judgments across two business scenarios</h2>
+      <div class="metric-grid">
+        <article class="metric metric--winner">
+          <div class="metric__label">Combined Jev latency</div>
+          <div class="metric__value">677 ms</div>
+          <div class="metric__detail"><strong>11.1× faster</strong> than 7,533 ms in this run</div>
+        </article>
+        <article class="metric metric--winner">
+          <div class="metric__label">Combined Jev tokens</div>
+          <div class="metric__value">1,589</div>
+          <div class="metric__detail"><strong>256 fewer</strong> than 1,845 total tokens</div>
+        </article>
+        <article class="metric">
+          <div class="metric__label">Primary choice agreement</div>
+          <div class="metric__value">2 / 2</div>
+          <div class="metric__detail">Both selected Reimbursements and Enterprise</div>
+        </article>
+        <article class="metric metric--winner">
+          <div class="metric__label">Jev output-token reduction</div>
+          <div class="metric__value">49.8%</div>
+          <div class="metric__detail">213 structured output tokens vs 424 generated tokens</div>
+        </article>
+      </div>
+      <div class="callout">
+        <div class="callout__number">91%</div>
+        <p><strong>lower combined wall-clock latency in this live observation.</strong><br>Jev returned typed Choice, Score, and Noul results ready for deterministic Apex policy. The generative comparison returned JSON text that an application would still need to parse and validate.</p>
+      </div>
+    </section>
+
+    <section class="section card">
+      <div class="eyebrow">Combined efficiency</div>
+      <h2>Two provider executions each, one Salesforce transaction</h2>
+      <table aria-label="Combined benchmark metrics">
+        <thead><tr><th>Metric</th><th class="num">Jev</th><th class="num">Agentforce Models API · Opus 4.8</th><th class="num">Observed difference</th></tr></thead>
+        <tbody>
+          <tr><td>Elapsed wall-clock time</td><td class="num good">677 ms</td><td class="num">7,533 ms</td><td class="num good">6,856 ms lower · 11.1× faster</td></tr>
+          <tr><td>Input tokens</td><td class="num good">1,376</td><td class="num">1,421</td><td class="num good">45 fewer · 3.2% lower</td></tr>
+          <tr><td>Output tokens</td><td class="num good">213</td><td class="num">424</td><td class="num good">211 fewer · 49.8% lower</td></tr>
+          <tr><td>Total tokens</td><td class="num good">1,589</td><td class="num">1,845</td><td class="num good">256 fewer · 13.9% lower</td></tr>
+          <tr><td>Judgments requested</td><td class="num">7</td><td class="num">7</td><td class="num neutral">Same semantic task</td></tr>
+          <tr><td>Average elapsed / judgment</td><td class="num good">96.7 ms</td><td class="num">1,076.1 ms</td><td class="num good">979.4 ms lower</td></tr>
+          <tr><td>Average tokens / judgment</td><td class="num good">227.0</td><td class="num">263.6</td><td class="num good">36.6 fewer</td></tr>
+          <tr><td>Response contract</td><td class="num good">Typed Apex results</td><td class="num">Generated JSON text</td><td class="num good">Jev avoids app-side text parsing</td></tr>
+        </tbody>
+      </table>
+      <div class="mini-title">Latency — shorter is better</div>
+      <div class="bar-row"><span>Jev</span><div class="bar-track"><div class="bar bar--jev" style="width:9%"></div></div><span class="bar-value">677 ms</span></div>
+      <div class="bar-row"><span>Agentforce API</span><div class="bar-track"><div class="bar bar--models" style="width:100%"></div></div><span class="bar-value">7,533 ms</span></div>
+      <div class="mini-title">Total tokens — shorter is better</div>
+      <div class="bar-row"><span>Jev</span><div class="bar-track"><div class="bar bar--jev" style="width:86.1%"></div></div><span class="bar-value">1,589</span></div>
+      <div class="bar-row"><span>Agentforce API</span><div class="bar-track"><div class="bar bar--models" style="width:100%"></div></div><span class="bar-value">1,845</span></div>
+    </section>
+
+    <article class="scenario card">
+      <header class="scenario__header">
+        <div><div class="eyebrow">Scenario 1</div><h2>Case triage</h2><p>Missing reimbursement, fourth support contact, supplier deadline, and an explicitly frustrated customer.</p></div>
+        <span class="scenario__badge">4 judgments in one request</span>
+      </header>
+      <div class="scenario__body">
+        <div class="comparison">
+          <section class="provider provider--jev">
+            <div class="provider__head"><div><div class="provider__name">Jev</div><div class="provider__model">jev-1.13.0 · typed response</div></div><div class="provider__latency">490 ms</div></div>
+            <table><tbody>
+              <tr><td>Input</td><td class="num">710 tokens</td></tr><tr><td>Output</td><td class="num">121 tokens</td></tr><tr><td>Total</td><td class="num"><strong>831 tokens</strong></td></tr><tr><td>Per judgment</td><td class="num">207.8 tokens · 122.5 ms</td></tr>
+            </tbody></table>
+          </section>
+          <section class="provider provider--models">
+            <div class="provider__head"><div><div class="provider__name">Agentforce Models API · Opus 4.8</div><div class="provider__model">generated JSON text</div></div><div class="provider__latency">3,582 ms</div></div>
+            <table><tbody>
+              <tr><td>Input</td><td class="num">759 tokens</td></tr><tr><td>Output</td><td class="num">262 tokens</td></tr><tr><td>Total</td><td class="num"><strong>1,021 tokens</strong></td></tr><tr><td>Per judgment</td><td class="num">255.3 tokens · 895.5 ms</td></tr>
+            </tbody></table>
+          </section>
+        </div>
+
+        <div class="callout"><div class="callout__number">7.3×</div><p><strong>Jev was faster for Case triage in this observation</strong> and used 18.6% fewer total tokens. Both providers selected <strong>REIMBURSEMENTS</strong> and identified immediate-attention probability at 95% or higher.</p></div>
+
+        <div class="scenario-grid">
+          <section>
+            <div class="mini-title">Jev · routing Choice</div>
+            <div class="decision">
+              <div class="decision__top"><span class="decision__answer">REIMBURSEMENTS</span><strong>100% confidence</strong></div>
+              <div class="prob"><div class="prob__line"><span>Reimbursements</span><strong>100%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:100%"></div></div></div>
+              <div class="prob prob--muted"><div class="prob__line"><span>All other queues</span><strong>0%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:0%"></div></div></div>
+            </div>
+            <div class="mini-title">Jev · sentiment Score</div>
+            <div class="score-pair"><div class="score-box"><strong>2.92 / 3</strong><span>97.3% of scale maximum</span></div><div class="score-box"><strong>92%</strong><span>confidence</span></div></div>
+            <div class="prob"><div class="prob__line"><span>Highly distressed / immediate</span><strong>92%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:92%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Frustrated or angry</span><strong>8%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:8%"></div></div></div>
+            <div class="mini-title">Jev · Noul probabilities</div>
+            <div class="prob"><div class="prob__line"><span>Immediate human attention</span><strong>95%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:95%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Risk-related hold</span><strong>6%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:6%"></div></div></div>
+          </section>
+          <section>
+            <div class="mini-title">Agentforce Models API · routing</div>
+            <div class="decision">
+              <div class="decision__top"><span class="decision__answer">REIMBURSEMENTS</span><strong>90% probability</strong></div>
+              <div class="prob"><div class="prob__line"><span>Reimbursements</span><strong>90%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:90%"></div></div></div>
+              <div class="prob prob--muted"><div class="prob__line"><span>General support</span><strong>4%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:4%"></div></div></div>
+              <div class="prob prob--muted"><div class="prob__line"><span>Risk / technical / access</span><strong>6% combined</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:6%"></div></div></div>
+            </div>
+            <div class="mini-title">Agentforce Models API · sentiment</div>
+            <div class="score-pair"><div class="score-box"><strong>4 / 4</strong><span>100% of scale maximum</span></div><div class="score-box"><strong>90%</strong><span>reported confidence</span></div></div>
+            <div class="prob"><div class="prob__line"><span>Highly distressed / immediate</span><strong>80%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:80%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Frustrated or angry</span><strong>16%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:16%"></div></div></div>
+            <div class="mini-title">Agentforce Models API · binary probabilities</div>
+            <div class="prob"><div class="prob__line"><span>Immediate human attention</span><strong>97%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:97%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Risk-related hold</span><strong>8%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:8%"></div></div></div>
+          </section>
+        </div>
+      </div>
+    </article>
+
+    <article class="scenario card">
+      <header class="scenario__header">
+        <div><div class="eyebrow">Scenario 2</div><h2>Lead qualification</h2><p>A COO evaluating a multi-region rollout across 18 business units with active procurement, security review, and an executive deadline.</p></div>
+        <span class="scenario__badge">3 judgments in one request</span>
+      </header>
+      <div class="scenario__body">
+        <div class="comparison">
+          <section class="provider provider--jev">
+            <div class="provider__head"><div><div class="provider__name">Jev</div><div class="provider__model">jev-1.13.0 · typed response</div></div><div class="provider__latency">187 ms</div></div>
+            <table><tbody>
+              <tr><td>Input</td><td class="num">666 tokens</td></tr><tr><td>Output</td><td class="num">92 tokens</td></tr><tr><td>Total</td><td class="num"><strong>758 tokens</strong></td></tr><tr><td>Per judgment</td><td class="num">252.7 tokens · 62.3 ms</td></tr>
+            </tbody></table>
+          </section>
+          <section class="provider provider--models">
+            <div class="provider__head"><div><div class="provider__name">Agentforce Models API · Opus 4.8</div><div class="provider__model">generated JSON text</div></div><div class="provider__latency">3,951 ms</div></div>
+            <table><tbody>
+              <tr><td>Input</td><td class="num">662 tokens</td></tr><tr><td>Output</td><td class="num">162 tokens</td></tr><tr><td>Total</td><td class="num"><strong>824 tokens</strong></td></tr><tr><td>Per judgment</td><td class="num">274.7 tokens · 1,317.0 ms</td></tr>
+            </tbody></table>
+          </section>
+        </div>
+
+        <div class="callout"><div class="callout__number">21.1×</div><p><strong>Jev was faster for Lead qualification in this observation</strong> and used 8.0% fewer total tokens. Both providers selected <strong>ENTERPRISE</strong> and placed the Lead at the top of the buying-intent scale.</p></div>
+
+        <div class="scenario-grid">
+          <section>
+            <div class="mini-title">Jev · segment Choice</div>
+            <div class="decision">
+              <div class="decision__top"><span class="decision__answer">ENTERPRISE</span><strong>100% confidence</strong></div>
+              <div class="prob"><div class="prob__line"><span>Enterprise</span><strong>100%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:100%"></div></div></div>
+              <div class="prob prob--muted"><div class="prob__line"><span>All other segments</span><strong>0%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:0%"></div></div></div>
+            </div>
+            <div class="mini-title">Jev · buying-intent Score</div>
+            <div class="score-pair"><div class="score-box"><strong>2.98 / 3</strong><span>99.3% of scale maximum</span></div><div class="score-box"><strong>98%</strong><span>confidence</span></div></div>
+            <div class="prob"><div class="prob__line"><span>Ready for direct engagement</span><strong>98%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:98%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Active evaluation</span><strong>2%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:2%"></div></div></div>
+            <div class="mini-title">Jev · Noul probability</div>
+            <div class="prob"><div class="prob__line"><span>Follow up within one hour</span><strong>85%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--jev" style="width:85%"></div></div></div>
+          </section>
+          <section>
+            <div class="mini-title">Agentforce Models API · segment</div>
+            <div class="decision">
+              <div class="decision__top"><span class="decision__answer">ENTERPRISE</span><strong>97% probability</strong></div>
+              <div class="prob"><div class="prob__line"><span>Enterprise</span><strong>97%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:97%"></div></div></div>
+              <div class="prob prob--muted"><div class="prob__line"><span>Nurture / partnerships / SMB</span><strong>3% combined</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:3%"></div></div></div>
+            </div>
+            <div class="mini-title">Agentforce Models API · buying intent</div>
+            <div class="score-pair"><div class="score-box"><strong>4 / 4</strong><span>100% of scale maximum</span></div><div class="score-box"><strong>95%</strong><span>reported confidence</span></div></div>
+            <div class="prob"><div class="prob__line"><span>Ready for direct engagement</span><strong>87%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:87%"></div></div></div>
+            <div class="prob"><div class="prob__line"><span>Active evaluation</span><strong>10%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:10%"></div></div></div>
+            <div class="mini-title">Agentforce Models API · binary probability</div>
+            <div class="prob"><div class="prob__line"><span>Follow up within one hour</span><strong>97%</strong></div><div class="prob__track"><div class="prob__fill prob__fill--models" style="width:97%"></div></div></div>
+          </section>
+        </div>
+      </div>
+    </article>
+
+    <section class="section card">
+      <div class="eyebrow">Why the contract matters</div>
+      <h2>Jev returns judgment primitives—not prose pretending to be data</h2>
+      <div class="flow">
+        <div class="flow__step"><strong>Explicit Salesforce state</strong><span>Only developer-selected fields leave the org.</span></div><div class="flow__arrow">→</div>
+        <div class="flow__step"><strong>Choice · Score · Noul</strong><span>Probabilities and uncertainty arrive in typed Apex result objects.</span></div><div class="flow__arrow">→</div>
+        <div class="flow__step"><strong>Deterministic policy</strong><span>Salesforce owns thresholds, queue assignment, priority, and DML.</span></div>
+      </div>
+      <div class="insight-grid" style="margin-top:18px">
+        <article class="insight"><strong>Visible uncertainty</strong><p>Every route and score distribution is available, not only the winning label.</p></article>
+        <article class="insight"><strong>Compact output</strong><p>Jev used half as many output tokens overall in this observation.</p></article>
+        <article class="insight"><strong>Safer application boundary</strong><p>Typed results remove markdown stripping and ad hoc generated-JSON parsing from business code.</p></article>
+      </div>
+    </section>
+
+    <section class="section card">
+      <div class="eyebrow">Methodology and honesty</div>
+      <h2>What this report proves—and what it does not</h2>
+      <table><tbody>
+        <tr><td><strong>Execution</strong></td><td>Anonymous Apex ran successfully in <code>mydevorg</code>. One Case and one Lead scenario were evaluated once by each provider.</td></tr>
+        <tr><td><strong>Timing</strong></td><td>Wall-clock time was measured in Apex immediately around each provider invocation. It includes network and service latency visible to Salesforce.</td></tr>
+        <tr><td><strong>Task parity</strong></td><td>Each provider received the same semantic state, instructions, choices, and rubric. Wire formats differ because Jev accepts native structured questions while the generative API accepts a text prompt.</td></tr>
+        <tr><td><strong>Token source</strong></td><td>Token counts are the values reported by each provider. Tokenizers can differ, so counts measure actual reported consumption—not tokenizer-identical text.</td></tr>
+        <tr><td><strong>Side effects</strong></td><td>The benchmark used synthetic data, executed zero SOQL queries and zero DML, and did not change record ownership, Rating, Priority, escalation, or Tasks.</td></tr>
+        <tr><td><strong>Statistical scope</strong></td><td>This is a transparent live snapshot, not a statistically significant load test. Latency and generated probabilities may vary across runs, regions, load, models, and org configuration.</td></tr>
+      </tbody></table>
+      <p class="fineprint" style="margin-top:16px">Percentages and multipliers in this document are derived from the captured values and rounded to one decimal place. Score scales differ: Jev returned zero-based scores from 0–3; the generated comparison returned labels 1–4. The report normalizes each score against its own maximum when comparing position on the rubric.</p>
+    </section>
+
+    <section class="section card">
+      <div class="eyebrow">Evidence and reproducibility</div>
+      <h2>Inspect the generated comparison output</h2>
+      <details><summary>Case · Agentforce Models API generated JSON</summary><pre>{
+  "immediate_attention": { "yes": 0.97 },
+  "risk_hold": { "yes": 0.08, "no": 0.92 },
+  "sentiment": {
+    "score": 4,
+    "confidence": 0.90,
+    "probabilities": {
+      "Calm or neutral": 0.01,
+      "Concerned or disappointed": 0.03,
+      "Frustrated or angry": 0.16,
+      "Highly distressed, threatening departure, or demanding immediate intervention": 0.80
+    }
+  },
+  "route": {
+    "choice": "REIMBURSEMENTS",
+    "probabilities": {
+      "GENERAL_SUPPORT": 0.04,
+      "RISK_REVIEW": 0.03,
+      "ACCOUNT_ACCESS": 0.01,
+      "REIMBURSEMENTS": 0.90,
+      "CHECKOUT_TECHNICAL": 0.02
+    }
+  }
+}</pre></details>
+      <details><summary>Lead · Agentforce Models API generated JSON</summary><pre>{
+  "immediate_follow_up": { "yes": 0.97 },
+  "intent": {
+    "score": 4,
+    "confidence": 0.95,
+    "probabilities": { "1": 0.01, "2": 0.02, "3": 0.10, "4": 0.87 }
+  },
+  "segment": {
+    "choice": "ENTERPRISE",
+    "probabilities": {
+      "NURTURE": 0.01,
+      "PARTNERSHIPS": 0.01,
+      "SMALL_BUSINESS": 0.01,
+      "ENTERPRISE": 0.97
+    }
+  }
+}</pre></details>
+      <details><summary>Run the benchmark again</summary><pre>sf apex run \
+  --file examples/model-comparison/scripts/run-live-benchmark.apex \
+  --target-org mydevorg</pre></details>
+    </section>
+
+    <footer>JevForce benchmark report · Salesforce provides state · Jev provides structured judgment · Salesforce decides what action to take.</footer>
+  </main>
+</body>
+</html>

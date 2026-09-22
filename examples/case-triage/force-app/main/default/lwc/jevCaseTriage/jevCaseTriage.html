@@ -1,0 +1,395 @@
+<template>
+    <article class="shell slds-card">
+        <header class="hero slds-card__header">
+            <div class="hero__mark">
+                <lightning-icon
+                    icon-name="standard:insights"
+                    size="medium"
+                    alternative-text="Structured judgment insights"
+                ></lightning-icon>
+            </div>
+            <div class="hero__copy">
+                <p class="eyebrow slds-text-title_caps">JEVFORCE · PROBABILITY-FIRST TRIAGE</p>
+                <h2 class="slds-text-heading_medium">See the judgment, not just the answer</h2>
+                <p class="subtitle slds-text-body_small">
+                    Every route and score stays visible before Salesforce applies policy.
+                </p>
+            </div>
+            <div class="hero__action">
+                <lightning-button
+                    variant="brand"
+                    class="jevforce-action"
+                    label={buttonLabel}
+                    icon-name="utility:einstein"
+                    onclick={analyze}
+                    disabled={isBusy}
+                ></lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label={modelsButtonLabel}
+                    icon-name="utility:metrics"
+                    onclick={benchmarkModels}
+                    disabled={isBusy}
+                ></lightning-button>
+                <lightning-button
+                    variant="outline-brand"
+                    label={compareButtonLabel}
+                    title={compareButtonTitle}
+                    icon-name="utility:chart"
+                    onclick={toggleMetricComparison}
+                    disabled={isCompareDisabled}
+                ></lightning-button>
+            </div>
+        </header>
+
+        <section class="case-strip slds-border_bottom" aria-label="Case context">
+            <div>
+                <span class="meta-label slds-text-title_caps">CASE</span>
+                <strong>{caseNumber}</strong>
+            </div>
+            <div class="case-strip__subject">
+                <span class="meta-label slds-text-title_caps">SUBJECT</span>
+                <strong>{subject}</strong>
+            </div>
+            <div>
+                <span class="meta-label slds-text-title_caps">CURRENT OWNER</span>
+                <strong>{ownerName}</strong>
+            </div>
+        </section>
+
+        <template lwc:if={showBenchmarks}>
+            <section class="benchmark-panel" aria-label="Model performance comparison">
+                <header class="benchmark-panel__header">
+                    <div>
+                        <p class="slds-text-title_caps">SAME STATE · SAME DECISIONS</p>
+                        <h3 class="slds-text-heading_small">Jev and Salesforce Models API comparison</h3>
+                    </div>
+                    <span class="slds-badge">Measured inside Apex</span>
+                </header>
+                <div class="benchmark-grid">
+                    <template lwc:if={result}>
+                        <article class="benchmark-card benchmark-card--jev">
+                            <div class="benchmark-card__title"><strong>Jev</strong><span>Native typed decisions</span></div>
+                            <dl>
+                                <div><dt>Total tokens</dt><dd>{result.totalTokens}</dd></div>
+                                <div><dt>Elapsed</dt><dd>{jevElapsedDisplay}</dd></div>
+                                <div><dt>Input / output</dt><dd>{result.inputTokens} / {result.outputTokens}</dd></div>
+                            </dl>
+                        </article>
+                    </template>
+                    <template lwc:if={modelsResult}>
+                        <article class="benchmark-card benchmark-card--models-api">
+                            <div class="benchmark-card__title"><strong>Agentforce Models API · Opus 4.8</strong><span>Generated JSON via Salesforce Models API</span></div>
+                            <dl>
+                                <div><dt>Total tokens</dt><dd>{modelsTotalTokens}</dd></div>
+                                <div><dt>Elapsed</dt><dd>{modelsElapsedDisplay}</dd></div>
+                                <div><dt>Input / output</dt><dd>{modelsResult.inputTokens} / {modelsResult.outputTokens}</dd></div>
+                            </dl>
+                            <details>
+                                <summary>View generated comparison output</summary>
+                                <pre>{modelsResult.generatedText}</pre>
+                            </details>
+                        </article>
+                    </template>
+                </div>
+                <p class="benchmark-note slds-text-body_small">Agentforce Models API output is displayed for comparison only. It never changes Case ownership, Priority, or escalation.</p>
+                <template lwc:if={needsComparisonData}>
+                    <p class="comparison-ready-note slds-text-body_small">Complete both live runs to enable <strong>Compare Metrics</strong>.</p>
+                </template>
+            </section>
+        </template>
+
+        <template lwc:if={showMetricComparison}>
+            <section
+                role="dialog"
+                tabindex="-1"
+                aria-modal="true"
+                aria-labelledby="metrics-modal-heading"
+                class="slds-modal slds-fade-in-open metrics-modal"
+                onkeydown={handleModalKeydown}
+            >
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header metrics-modal__header">
+                        <lightning-button-icon
+                            class="slds-modal__close"
+                            icon-name="utility:close"
+                            alternative-text="Close metrics"
+                            title="Close"
+                            variant="bare-inverse"
+                            onclick={closeMetricComparison}
+                        ></lightning-button-icon>
+                        <p class="slds-text-title_caps">LIVE COMPARISON</p>
+                        <h2 id="metrics-modal-heading" class="slds-modal__title slds-hyphenate">JevForce performance</h2>
+                        <p class="slds-m-top_x-small">A simple view of response time and total tokens for this Case.</p>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_large">
+                        <div class="simple-metrics-grid">
+                            <article class="metrics-chart-card">
+                                <h3 class="slds-text-heading_small">Performance</h3>
+                                <p class="chart-help slds-text-body_small">Elapsed response time · shorter is better</p>
+                                <template for:each={latencyComparisonRows} for:item="row">
+                                    <div class="comparison-row" key={row.key}>
+                                        <div class="comparison-row__label"><span>{row.provider}</span><strong>{row.display}</strong></div>
+                                        <div class="comparison-track"><i class={row.className} style={row.style}></i></div>
+                                    </div>
+                                </template>
+                            </article>
+                            <article class="metrics-chart-card">
+                                <h3 class="slds-text-heading_small">Total tokens</h3>
+                                <p class="chart-help slds-text-body_small">Input plus output tokens · shorter is better</p>
+                                <template for:each={tokenComparisonRows} for:item="row">
+                                    <div class="comparison-row" key={row.key}>
+                                        <div class="comparison-row__label"><span>{row.provider}</span><strong>{row.display}</strong></div>
+                                        <div class="comparison-track"><i class={row.className} style={row.style}></i></div>
+                                    </div>
+                                </template>
+                            </article>
+                        </div>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button label="Close" onclick={closeMetricComparison}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+
+        <template lwc:if={isLoading}>
+            <div class="loading-panel">
+                <lightning-spinner alternative-text="Jev is analyzing the case" size="small"></lightning-spinner>
+                <div>
+                    <strong class="slds-text-heading_small">Jev is evaluating four judgments in parallel</strong>
+                    <p class="slds-text-body_small">One state, one call, complete probability distributions.</p>
+                </div>
+            </div>
+        </template>
+
+        <template lwc:elseif={result}>
+            <div class="probability-primer" role="note">
+                <span class="primer-number">01</span>
+                <p class="slds-text-body_small"><strong>Probability</strong> shows how belief is distributed across possible answers.</p>
+                <span class="primer-divider" aria-hidden="true"></span>
+                <span class="primer-number">02</span>
+                <p class="slds-text-body_small"><strong>Confidence</strong> summarizes how decisive the Choice or Score distribution is.</p>
+                <span class="primer-divider" aria-hidden="true"></span>
+                <span class="primer-number">03</span>
+                <p class="slds-text-body_small"><strong>Policy</strong> belongs to Salesforce and determines the business action.</p>
+            </div>
+
+            <section class="decision-hero" aria-live="polite">
+                <div class="decision-hero__label">
+                    <span class="live-dot" aria-hidden="true"></span>
+                    SALESFORCE ACTION COMPLETED
+                </div>
+                <div class="decision-hero__main">
+                    <div>
+                        <p class="slds-text-body_small">Case ownership</p>
+                        <h3 class="slds-text-heading_small">{result.queueName}</h3>
+                    </div>
+                    <span class="decision-arrow" aria-hidden="true">→</span>
+                    <div>
+                        <p class="slds-text-body_small">Customer state</p>
+                        <h3 class="slds-text-heading_small">{result.sentimentLabel}</h3>
+                    </div>
+                    <span class="decision-arrow" aria-hidden="true">→</span>
+                    <div>
+                        <p class="slds-text-body_small">Response policy</p>
+                        <h3 class="slds-text-heading_small">{result.priority} priority</h3>
+                    </div>
+                </div>
+                <p class="decision-hero__explanation slds-text-body_small">{result.policyExplanation}</p>
+            </section>
+
+            <section class="primitive-grid">
+                <article class="primitive-panel primitive-panel--choice">
+                    <header class="primitive-heading">
+                        <div class="primitive-icon">C</div>
+                        <div>
+                            <p class="primitive-type slds-text-title_caps">CHOICE · ONE OF MANY</p>
+                            <h3 class="slds-text-heading_small">Who should own this case?</h3>
+                        </div>
+                        <div class="headline-value">
+                            <strong>{routeLabel}</strong>
+                            <span>{routeConfidenceDisplay}</span>
+                        </div>
+                    </header>
+
+                    <p class="chart-caption slds-text-body_small">
+                        Jev returns every possible route. The selected route is simply the highest-probability option.
+                    </p>
+
+                    <div class="choice-chart" role="figure" aria-label="Probability of every case routing option">
+                        <template for:each={routeRows} for:item="row">
+                            <div class={row.className} key={row.key}>
+                                <div class="probability-label">
+                                    <span>{row.label}</span>
+                                    <template lwc:if={row.key}>
+                                        <span class="probability-key">{row.key}</span>
+                                    </template>
+                                </div>
+                                <div class="probability-track">
+                                    <span class="probability-fill" style={row.style}></span>
+                                </div>
+                                <strong>{row.percent}</strong>
+                            </div>
+                        </template>
+                    </div>
+                </article>
+
+                <article class="primitive-panel primitive-panel--score">
+                    <header class="primitive-heading">
+                        <div class="primitive-icon primitive-icon--coral">S</div>
+                        <div>
+                            <p class="primitive-type slds-text-title_caps">SCORE · ORDERED SCALE</p>
+                            <h3 class="slds-text-heading_small">How does the customer feel?</h3>
+                        </div>
+                        <div class="headline-value">
+                            <strong>{sentimentDisplay} / 3</strong>
+                            <span>{sentimentConfidenceDisplay} confidence</span>
+                        </div>
+                    </header>
+
+                    <p class="chart-caption slds-text-body_small">
+                        The score is the probability-weighted position across all four sentiment levels—not a hard label.
+                    </p>
+
+                    <div class="score-chart" role="figure" aria-label="Probability distribution across sentiment levels">
+                        <div class="score-columns">
+                            <template for:each={sentimentRows} for:item="row">
+                                <div class={row.className} key={row.key}>
+                                    <div class="distribution-value">{row.percent}</div>
+                                    <div class="distribution-track">
+                                        <span class="distribution-fill" style={row.style}></span>
+                                    </div>
+                                    <div class="distribution-index">{row.key}</div>
+                                    <div class="distribution-label">{row.label}</div>
+                                </div>
+                            </template>
+                        </div>
+                        <div class="weighted-result">
+                            <span>0 · calm</span>
+                            <div class="weighted-line">
+                                <span class="weighted-position" style={sentimentWidth} aria-hidden="true"></span>
+                            </div>
+                            <span>3 · distressed</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="primitive-panel primitive-panel--noul">
+                    <header class="primitive-heading">
+                        <div class="primitive-icon primitive-icon--amber">N</div>
+                        <div>
+                            <p class="primitive-type slds-text-title_caps">NOUL · YES PROBABILITY</p>
+                            <h3 class="slds-text-heading_small">What needs intervention?</h3>
+                        </div>
+                        <div class="headline-value headline-value--plain">
+                            <strong>Two propositions</strong>
+                            <span>No separate confidence</span>
+                        </div>
+                    </header>
+
+                    <p class="chart-caption slds-text-body_small">
+                        Noul returns the probability of “yes.” The complementary “no” probability is shown alongside it.
+                    </p>
+
+                    <div class="noul-grid">
+                        <section class="noul-question" aria-label="Risk hold probability">
+                            <div class="noul-heading">
+                                <div>
+                                    <span class="noul-kicker slds-text-title_caps">RISK HOLD</span>
+                                    <h4 class="slds-text-title_bold">{riskVerdict}</h4>
+                                </div>
+                                <strong>{riskPair.yes}</strong>
+                            </div>
+                            <div class="binary-bar" role="img" aria-label="Risk hold yes and no probabilities">
+                                <span class="binary-yes" style={riskPair.yesStyle}></span>
+                                <span class="binary-no" style={riskPair.noStyle}></span>
+                            </div>
+                            <div class="binary-legend slds-text-body_small">
+                                <span><i class="legend-dot legend-dot--yes"></i>Yes {riskPair.yes}</span>
+                                <span><i class="legend-dot legend-dot--no"></i>No {riskPair.no}</span>
+                            </div>
+                        </section>
+
+                        <section class="noul-question" aria-label="Immediate attention probability">
+                            <div class="noul-heading">
+                                <div>
+                                    <span class="noul-kicker slds-text-title_caps">IMMEDIATE ATTENTION</span>
+                                    <h4 class="slds-text-title_bold">{attentionVerdict}</h4>
+                                </div>
+                                <strong>{attentionPair.yes}</strong>
+                            </div>
+                            <div class="binary-bar" role="img" aria-label="Immediate attention yes and no probabilities">
+                                <span class="binary-yes binary-yes--attention" style={attentionPair.yesStyle}></span>
+                                <span class="binary-no" style={attentionPair.noStyle}></span>
+                            </div>
+                            <div class="binary-legend slds-text-body_small">
+                                <span><i class="legend-dot legend-dot--attention"></i>Yes {attentionPair.yes}</span>
+                                <span><i class="legend-dot legend-dot--no"></i>No {attentionPair.no}</span>
+                            </div>
+                        </section>
+                    </div>
+                </article>
+            </section>
+
+            <section class="policy-bridge">
+                <div class="policy-bridge__title">
+                    <p class="meta-label slds-text-title_caps">THE JEVFORCE BOUNDARY</p>
+                    <h3 class="slds-text-heading_small">Judgment remains separate from action</h3>
+                </div>
+                <div class="policy-stage">
+                    <span class="stage-number">1</span>
+                    <div><strong>Jev judgment</strong><p class="slds-text-body_small">Typed answers, full probabilities, calibrated confidence.</p></div>
+                </div>
+                <span class="stage-arrow" aria-hidden="true">→</span>
+                <div class="policy-stage">
+                    <span class="stage-number">2</span>
+                    <div><strong>Salesforce policy</strong><p class="slds-text-body_small">Risk override, specialist mapping, sentiment thresholds.</p></div>
+                </div>
+                <span class="stage-arrow" aria-hidden="true">→</span>
+                <div class="policy-stage">
+                    <span class="stage-number stage-number--action">3</span>
+                    <div><strong>Deterministic action</strong><p class="slds-text-body_small">{result.queueName} · {result.priority} priority · {escalationLabel}</p></div>
+                </div>
+            </section>
+
+            <footer class="run-footer slds-text-body_small">
+                <span>Served by <strong>{result.model}</strong></span>
+                <span class="footer-separator" aria-hidden="true"></span>
+                <span><strong>{result.inputTokens}</strong> input tokens</span>
+                <span class="footer-separator" aria-hidden="true"></span>
+                <span><strong>{result.outputTokens}</strong> output tokens</span>
+                <span class="footer-separator" aria-hidden="true"></span>
+                <span><strong>{result.totalTokens}</strong> total tokens</span>
+                <span class="footer-separator" aria-hidden="true"></span>
+                <span><strong>{jevElapsedDisplay}</strong> elapsed</span>
+                <span class={escalationClass}>{escalationLabel}</span>
+            </footer>
+        </template>
+
+        <template lwc:else>
+            <section class="empty-state">
+                <div class="empty-state__visual">
+                    <lightning-icon
+                        icon-name="utility:chart"
+                        size="medium"
+                        alternative-text="Decision probabilities"
+                    ></lightning-icon>
+                </div>
+                <div>
+                    <p class="meta-label slds-text-title_caps">READY FOR A LIVE JUDGMENT</p>
+                    <h3 class="slds-text-heading_small">Make uncertainty visible</h3>
+                    <p class="slds-text-body_small">
+                        Run triage to see every Choice probability, the complete sentiment distribution,
+                        and both Noul outcomes before Salesforce assigns the Case.
+                    </p>
+                    <div class="case-description">
+                        <p class="meta-label slds-text-title_caps">CASE DESCRIPTION</p>
+                        <lightning-formatted-text value={description}></lightning-formatted-text>
+                    </div>
+                </div>
+            </section>
+        </template>
+    </article>
+</template>

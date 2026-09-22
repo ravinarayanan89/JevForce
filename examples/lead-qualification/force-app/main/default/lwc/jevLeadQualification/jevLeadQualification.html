@@ -1,0 +1,199 @@
+<template>
+    <article class="shell slds-card">
+        <header class="header slds-card__header">
+            <lightning-icon icon-name="standard:lead" size="medium" alternative-text="Lead qualification"></lightning-icon>
+            <div class="header__copy">
+                <p class="eyebrow slds-text-title_caps">JEVFORCE · LEAD QUALIFICATION</p>
+                <h2 class="slds-text-heading_medium">Structured judgment for sales routing</h2>
+                <p class="slds-text-body_small">Jev evaluates fit and intent. Salesforce owns assignment and follow-up policy.</p>
+            </div>
+            <div class="header__actions">
+                <lightning-button
+                    variant="brand"
+                    label={buttonLabel}
+                    icon-name="utility:refresh"
+                    onclick={analyze}
+                    disabled={isBusy}
+                ></lightning-button>
+                <lightning-button
+                    variant="neutral"
+                    label={modelsButtonLabel}
+                    icon-name="utility:metrics"
+                    onclick={benchmarkModels}
+                    disabled={isBusy}
+                ></lightning-button>
+                <lightning-button
+                    variant="outline-brand"
+                    label={compareButtonLabel}
+                    title={compareButtonTitle}
+                    icon-name="utility:chart"
+                    onclick={toggleMetricComparison}
+                    disabled={isCompareDisabled}
+                ></lightning-button>
+            </div>
+        </header>
+
+        <section class="record-strip slds-border_bottom" aria-label="Lead context">
+            <div><span class="label slds-text-title_caps">LEAD</span><strong>{name}</strong></div>
+            <div><span class="label slds-text-title_caps">COMPANY · TITLE</span><strong>{company} · {title}</strong></div>
+            <div><span class="label slds-text-title_caps">CURRENT OWNER</span><strong>{ownerName}</strong></div>
+        </section>
+
+        <template lwc:if={showBenchmarks}>
+            <section class="benchmark-panel" aria-label="Model performance comparison">
+                <header class="benchmark-panel__header">
+                    <div><p class="slds-text-title_caps">SAME STATE · SAME DECISIONS</p><h3 class="slds-text-heading_small">Jev and Salesforce Models API comparison</h3></div>
+                    <span class="slds-badge">Measured inside Apex</span>
+                </header>
+                <div class="benchmark-grid">
+                    <template lwc:if={result}>
+                        <article class="benchmark-card benchmark-card--jev">
+                            <div class="benchmark-card__title"><strong>Jev</strong><span>Native typed decisions</span></div>
+                            <dl>
+                                <div><dt>Total tokens</dt><dd>{result.totalTokens}</dd></div>
+                                <div><dt>Elapsed</dt><dd>{jevElapsedDisplay}</dd></div>
+                                <div><dt>Input / output</dt><dd>{result.inputTokens} / {result.outputTokens}</dd></div>
+                            </dl>
+                        </article>
+                    </template>
+                    <template lwc:if={modelsResult}>
+                        <article class="benchmark-card benchmark-card--models-api">
+                            <div class="benchmark-card__title"><strong>Agentforce Models API · Opus 4.8</strong><span>Generated JSON via Salesforce Models API</span></div>
+                            <dl>
+                                <div><dt>Total tokens</dt><dd>{modelsTotalTokens}</dd></div>
+                                <div><dt>Elapsed</dt><dd>{modelsElapsedDisplay}</dd></div>
+                                <div><dt>Input / output</dt><dd>{modelsResult.inputTokens} / {modelsResult.outputTokens}</dd></div>
+                            </dl>
+                            <details><summary>View generated comparison output</summary><pre>{modelsResult.generatedText}</pre></details>
+                        </article>
+                    </template>
+                </div>
+                <p class="benchmark-note slds-text-body_small">Agentforce Models API output is displayed for comparison only. It never changes Lead ownership, Rating, or Tasks.</p>
+                <template lwc:if={needsComparisonData}><p class="comparison-ready-note slds-text-body_small">Complete both live runs to enable <strong>Compare Metrics</strong>.</p></template>
+            </section>
+        </template>
+
+        <template lwc:if={showMetricComparison}>
+            <section class="metrics-dashboard" aria-label="Detailed live comparison metrics">
+                <header class="metrics-dashboard__header">
+                    <div><p class="slds-text-title_caps">LIVE OBSERVATION · THREE JUDGMENTS</p><h3 class="slds-text-heading_small">Jev efficiency and decision comparison</h3><p class="slds-text-body_small">Calculated from the current Lead runs. Opening this view makes no additional callout.</p></div>
+                    <span class="slds-badge">Same Lead context</span>
+                </header>
+                <div class="metrics-highlight-grid">
+                    <template for:each={comparisonHighlights} for:item="metric">
+                        <article class={metric.className} key={metric.key}><span class="slds-text-title_caps">{metric.label}</span><strong>{metric.value}</strong><p class="slds-text-body_small">{metric.detail}</p></article>
+                    </template>
+                </div>
+                <div class="metrics-chart-grid">
+                    <article class="metrics-chart-card">
+                        <h4 class="slds-text-heading_small">Elapsed time</h4><p class="chart-help slds-text-body_small">Apex wall-clock time. Shorter is better.</p>
+                        <template for:each={latencyComparisonRows} for:item="row"><div class="comparison-row" key={row.key}><div class="comparison-row__label"><span>{row.provider}</span><strong>{row.display}</strong></div><div class="comparison-track"><i class={row.className} style={row.style}></i></div></div></template>
+                    </article>
+                    <article class="metrics-chart-card">
+                        <h4 class="slds-text-heading_small">Total token consumption</h4><p class="chart-help slds-text-body_small">Provider-reported input plus output. Shorter is better.</p>
+                        <template for:each={tokenComparisonRows} for:item="row"><div class="comparison-row" key={row.key}><div class="comparison-row__label"><span>{row.provider}</span><strong>{row.display}</strong></div><div class="comparison-track"><i class={row.className} style={row.style}></i></div></div></template>
+                    </article>
+                </div>
+                <div class="metrics-detail-grid">
+                    <article class="metrics-chart-card">
+                        <h4 class="slds-text-heading_small">Segment probability comparison</h4><p class="chart-help slds-text-body_small">The complete Choice distribution from each provider.</p>
+                        <template for:each={segmentComparisonRows} for:item="row"><div class="dual-probability" key={row.key}><strong>{row.label}</strong><div class="dual-probability__line"><span>Jev · {row.jevPercent}</span><div class="comparison-track"><i class="comparison-bar comparison-bar--jev" style={row.jevStyle}></i></div></div><div class="dual-probability__line"><span>Agentforce · {row.modelsPercent}</span><div class="comparison-track"><i class="comparison-bar comparison-bar--models" style={row.modelsStyle}></i></div></div></div></template>
+                    </article>
+                    <article class="metrics-chart-card">
+                        <h4 class="slds-text-heading_small">Noul probability comparison</h4><p class="chart-help slds-text-body_small">Probability of “yes.” Salesforce owns the 80% follow-up policy.</p>
+                        <template for:each={followUpComparisonRows} for:item="row"><div class="dual-probability" key={row.key}><strong>{row.label}</strong><div class="dual-probability__line"><span>Jev · {row.jevPercent}</span><div class="comparison-track"><i class="comparison-bar comparison-bar--jev" style={row.jevStyle}></i></div></div><div class="dual-probability__line"><span>Agentforce · {row.modelsPercent}</span><div class="comparison-track"><i class="comparison-bar comparison-bar--models" style={row.modelsStyle}></i></div></div><p class="probability-gap slds-text-body_small">Probability gap: {row.gap}</p></div></template>
+                    </article>
+                </div>
+                <article class="efficiency-table-wrap"><h4 class="slds-text-heading_small">Efficiency per judgment</h4><table class="slds-table slds-table_cell-buffer slds-table_bordered"><thead><tr><th scope="col">Provider</th><th scope="col">Average elapsed</th><th scope="col">Total tokens</th><th scope="col">Output tokens</th></tr></thead><tbody><template for:each={efficiencyRows} for:item="row"><tr key={row.key}><th scope="row">{row.provider}</th><td>{row.elapsed}</td><td>{row.tokens}</td><td>{row.output}</td></tr></template></tbody></table></article>
+                <div class="metrics-caveat" role="note"><lightning-icon icon-name="utility:info" size="x-small" alternative-text="Measurement note"></lightning-icon><p class="slds-text-body_small"><strong>Interpret as a live snapshot.</strong> Latency varies by service load and network path. Tokenizers may differ. The tasks share state and criteria, but Jev receives typed questions while Agentforce Models API receives a generated text prompt.</p></div>
+            </section>
+        </template>
+
+        <template lwc:if={isLoading}>
+            <section class="loading-state">
+                <lightning-spinner alternative-text="Jev is qualifying the Lead" size="small"></lightning-spinner>
+                <div><strong class="slds-text-heading_small">Jev is evaluating three judgments</strong><p class="slds-text-body_small">Segment, buying intent, and immediate follow-up.</p></div>
+            </section>
+        </template>
+
+        <template lwc:elseif={result}>
+            <section class="action-summary" aria-live="polite">
+                <div><span class="label slds-text-title_caps">ASSIGNED QUEUE</span><strong>{result.queueName}</strong></div>
+                <div><span class="label slds-text-title_caps">BUYING STATE</span><strong>{result.intentLabel}</strong></div>
+                <div><span class="label slds-text-title_caps">SALESFORCE RATING</span><strong class={ratingClass}>{result.rating}</strong></div>
+                <div><span class="label slds-text-title_caps">FOLLOW-UP POLICY</span><strong>{taskLabel}</strong></div>
+                <p class="slds-text-body_small">{result.policyExplanation}</p>
+            </section>
+
+            <section class="result-grid">
+                <article class="result-card">
+                    <header class="result-heading">
+                        <div><span class="primitive slds-text-title_caps">CHOICE</span><h3 class="slds-text-heading_small">Which sales motion fits?</h3></div>
+                        <div class="result-value"><strong>{segmentLabel}</strong><span>{segmentConfidence}</span></div>
+                    </header>
+                    <p class="caption slds-text-body_small">The winning segment is shown with every alternative probability.</p>
+                    <div class="probability-list" role="figure" aria-label="Lead segment probabilities">
+                        <template for:each={segmentRows} for:item="row">
+                            <div class={row.className} key={row.key}>
+                                <span>{row.label}</span>
+                                <div class="probability-track"><i style={row.style}></i></div>
+                                <strong>{row.percent}</strong>
+                            </div>
+                        </template>
+                    </div>
+                </article>
+
+                <article class="result-card">
+                    <header class="result-heading">
+                        <div><span class="primitive primitive--intent slds-text-title_caps">SCORE</span><h3 class="slds-text-heading_small">How strong is buying intent?</h3></div>
+                        <div class="result-value"><strong>{intentDisplay} / 3</strong><span>{intentConfidence}</span></div>
+                    </header>
+                    <p class="caption slds-text-body_small">The score is a probability-weighted position across the complete rubric.</p>
+                    <div class="intent-chart" role="figure" aria-label="Buying intent distribution">
+                        <template for:each={intentRows} for:item="row">
+                            <div class={row.className} key={row.key}>
+                                <strong>{row.percent}</strong>
+                                <div class="intent-track"><i style={row.style}></i></div>
+                                <span class="intent-index">{row.key}</span>
+                                <span>{row.label}</span>
+                            </div>
+                        </template>
+                    </div>
+                </article>
+
+                <article class="result-card result-card--wide">
+                    <header class="result-heading">
+                        <div><span class="primitive primitive--noul slds-text-title_caps">NOUL</span><h3 class="slds-text-heading_small">Should a person follow up within one hour?</h3></div>
+                        <div class="result-value"><strong>{followUpPair.yes}</strong><span>probability of yes</span></div>
+                    </header>
+                    <p class="caption slds-text-body_small">Jev returns probability. The 80% Task threshold belongs to this Salesforce demo.</p>
+                    <div class="binary-bar" role="img" aria-label="Immediate follow-up yes and no probabilities">
+                        <i class="binary-yes" style={followUpPair.yesStyle}></i>
+                        <i class="binary-no" style={followUpPair.noStyle}></i>
+                    </div>
+                    <div class="binary-legend slds-text-body_small"><span>Yes {followUpPair.yes}</span><span>No {followUpPair.no}</span></div>
+                </article>
+            </section>
+
+            <footer class="footer slds-text-body_small">
+                <span>Served by <strong>{result.model}</strong></span>
+                <span>{result.inputTokens} input tokens</span>
+                <span>{result.outputTokens} output tokens</span>
+                <span>{result.totalTokens} total tokens</span>
+                <span>{jevElapsedDisplay} elapsed</span>
+            </footer>
+        </template>
+
+        <template lwc:else>
+            <section class="ready-state">
+                <div class="ready-icon"><lightning-icon icon-name="utility:groups" size="medium" alternative-text="Lead routing"></lightning-icon></div>
+                <div>
+                    <p class="eyebrow slds-text-title_caps">READY FOR A LIVE JUDGMENT</p>
+                    <h3 class="slds-text-heading_small">Qualify without hiding uncertainty</h3>
+                    <p class="slds-text-body_small">Run qualification to see every segment probability, the full intent distribution, and the immediate-follow-up signal before Salesforce acts.</p>
+                    <div class="description"><span class="label slds-text-title_caps">QUALIFICATION CONTEXT</span><lightning-formatted-text value={description}></lightning-formatted-text></div>
+                </div>
+            </section>
+        </template>
+    </article>
+</template>

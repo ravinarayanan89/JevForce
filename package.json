@@ -1,0 +1,11 @@
+{
+  "name": "jevforce",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Structured Jev decisions for Salesforce Apex",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "sf apex run test --target-org mydevorg --test-level RunLocalTests --wait 20 --result-format human",
+    "check": "sf project deploy start --dry-run --target-org mydevorg --source-dir force-app --test-level RunLocalTests --wait 20"
+  }
+}

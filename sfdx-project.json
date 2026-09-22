@@ -1,0 +1,15 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true,
+      "package": "JevForce",
+      "versionName": "Version 1.0",
+      "versionNumber": "1.0.0.NEXT"
+    }
+  ],
+  "name": "JevForce",
+  "namespace": "",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "65.0"
+}
