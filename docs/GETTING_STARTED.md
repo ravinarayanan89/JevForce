@@ -82,12 +82,13 @@ System.debug(route.probabilities);
 Keep thresholds and actions outside JevForce:
 
 ```apex
-if (route.confidence >= 0.85) {
-    routeCaseUsingSalesforcePolicy(route.choice);
-} else {
-    sendCaseForHumanReview();
+public static Boolean mayRouteAutomatically(JevChoiceResult route) {
+    Decimal routingThreshold = 0.85;
+    return route.confidence >= routingThreshold;
 }
 ```
+
+The caller passes the `JevChoiceResult` created in the complete example immediately above. `routingThreshold` and every resulting action belong to the Salesforce application—for example, mapping `route.choice` to a Queue or sending the Case for human review.
 
 The threshold above is only an example. Tune application thresholds against representative labeled data and the cost of a wrong decision.
 

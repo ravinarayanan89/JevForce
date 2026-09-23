@@ -5,10 +5,21 @@
 JevForce never serializes a whole SObject. Developers must select every outbound value:
 
 ```apex
-JevState state = new JevState()
-    .put('subject', caseRecord.Subject)
-    .put('description', caseRecord.Description);
+public static JevState buildSafeCaseState(Id caseId) {
+    Case caseRecord = [
+        SELECT Subject, Description
+        FROM Case
+        WHERE Id = :caseId
+        LIMIT 1
+    ];
+
+    return new JevState()
+        .put('subject', caseRecord.Subject)
+        .put('description', caseRecord.Description);
+}
 ```
+
+The caller supplies `caseId`. This method queries only the fields approved for the judgment and then explicitly copies those values into `JevState`.
 
 Before adding a field, determine whether it is necessary for the judgment. Exclude secrets, authentication material, credentials, session identifiers, and unrelated personal information.
 

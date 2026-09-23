@@ -340,10 +340,21 @@ Both record-page demos include a separate **Agentforce Models API · Opus** acti
 There is intentionally no `fromSObject` method. Select each field that may leave Salesforce:
 
 ```apex
-JevState safeState = new JevState()
-    .put('subject', caseRecord.Subject)
-    .put('description', caseRecord.Description);
+public static JevState buildSafeCaseState(Id caseId) {
+    Case caseRecord = [
+        SELECT Subject, Description
+        FROM Case
+        WHERE Id = :caseId
+        LIMIT 1
+    ];
+
+    return new JevState()
+        .put('subject', caseRecord.Subject)
+        .put('description', caseRecord.Description);
+}
 ```
+
+Here, `caseId` is supplied by the caller—for example, a record-page LWC controller or Queueable constructor. Only the two explicitly queried fields are added to outbound Jev state.
 
 Before production use, classify the data you send, enforce your organization's CRUD/FLS and consent policies, check TypeSafe's current legal/data-processing terms, minimize customer content, and choose appropriate retention and audit controls. JevForce never logs request state, response bodies, credentials, or authentication headers.
 

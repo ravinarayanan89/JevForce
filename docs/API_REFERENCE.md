@@ -106,6 +106,19 @@ SObjects and arbitrary class instances are rejected. JevForce intentionally has 
 ## JevRequest
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice')
+    .put('description', 'Third contact about the same duplicate payment.');
+
+Map<String, String> choices = new Map<String, String>{
+    'BILLING' => 'Charges, refunds and invoices',
+    'FRAUD' => 'Unauthorized or suspicious activity'
+};
+
+List<String> rubric = new List<String>{
+    'Routine', 'Needs Attention', 'Urgent', 'Critical'
+};
+
 JevRequest request = new JevRequest(state)
     .addChoice('route', 'Which team?', choices)
     .addScore('urgency', 'How urgent?', rubric)
@@ -126,6 +139,26 @@ At least one question is required before execution.
 ## JevResponse
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice')
+    .put('description', 'Third contact about the same duplicate payment.');
+
+JevRequest request = new JevRequest(state)
+    .addChoice(
+        'route',
+        'Which team?',
+        new Map<String, String>{
+            'BILLING' => 'Charges, refunds and invoices',
+            'FRAUD' => 'Unauthorized or suspicious activity'
+        }
+    )
+    .addScore(
+        'urgency',
+        'How urgent?',
+        new List<String>{ 'Routine', 'Needs Attention', 'Urgent', 'Critical' }
+    )
+    .addNoul('escalate', 'Does this need immediate human attention?');
+
 JevResponse response = JevForce.execute(request);
 
 JevChoiceResult route = response.choice('route');
