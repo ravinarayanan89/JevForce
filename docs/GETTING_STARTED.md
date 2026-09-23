@@ -70,9 +70,9 @@ JevChoiceResult route = JevForce.choice(
     }
 );
 
-System.debug(route.choice);        // Observed: BILLING
-System.debug(route.confidence);    // Observed: 1.0
-System.debug(route.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
+System.debug(route.choice);        // Actual output: BILLING
+System.debug(route.confidence);    // Actual output: 1.0
+System.debug(route.probabilities); // Actual output: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
 
 /*
 Live Jev API response captured on 2026-09-23:

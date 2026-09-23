@@ -160,9 +160,9 @@ JevChoiceResult route = JevForce.choice(
     }
 );
 
-System.debug(route.choice);        // Observed: BILLING
-System.debug(route.confidence);    // Observed: 1.0
-System.debug(route.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
+System.debug(route.choice);        // Actual output: BILLING
+System.debug(route.confidence);    // Actual output: 1.0
+System.debug(route.probabilities); // Actual output: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
 
 /*
 Live Jev API response captured on 2026-09-23:
@@ -207,9 +207,9 @@ Decimal applicationThreshold = 0.70;
 
 JevChoiceResult result = JevForce.choice(state, question, choices);
 
-System.debug(result.choice);        // Observed: BILLING
-System.debug(result.confidence);    // Observed: 1.0
-System.debug(result.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
+System.debug(result.choice);        // Actual output: BILLING
+System.debug(result.confidence);    // Actual output: 1.0
+System.debug(result.probabilities); // Actual output: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
 
 if (result.confidence >= applicationThreshold) {
     // Salesforce-owned routing policy
@@ -266,10 +266,10 @@ JevScoreResult urgency = JevForce.score(
     rubric
 );
 
-System.debug(urgency.score);         // Observed: 2.56
-System.debug(urgency.confidence);    // Observed: 0.56
-System.debug(urgency.legend);        // Observed: {0=Routine, 1=Needs Attention, 2=Urgent, 3=Critical}
-System.debug(urgency.probabilities); // Observed: {0=0.0, 1=0.0, 2=0.44, 3=0.56}
+System.debug(urgency.score);         // Actual output: 2.56
+System.debug(urgency.confidence);    // Actual output: 0.56
+System.debug(urgency.legend);        // Actual output: {0=Routine, 1=Needs Attention, 2=Urgent, 3=Critical}
+System.debug(urgency.probabilities); // Actual output: {0=0.0, 1=0.0, 2=0.44, 3=0.56}
 
 /*
 Live Jev API response captured on 2026-09-23:
@@ -319,7 +319,7 @@ JevNoulResult escalation = JevForce.noul(
     proposition
 );
 
-System.debug(escalation.probability); // Observed: 0.88
+System.debug(escalation.probability); // Actual output: 0.88
 
 // Salesforce owns this threshold and the resulting action.
 Decimal escalationThreshold = 0.85;
