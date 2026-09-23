@@ -143,9 +143,9 @@ JevForceConfig.namedCredential = 'My_Jev_Credential';
 
 ```apex
 JevState state = new JevState()
-    .put('subject', caseRecord.Subject)
-    .put('description', caseRecord.Description)
-    .put('priority', caseRecord.Priority)
+    .put('subject', 'Charged twice')
+    .put('description', 'I was charged twice and need help immediately.')
+    .put('priority', 'High')
     .put('customerTier', 'Platinum')
     .put('previousCases', 3);
 
@@ -170,11 +170,32 @@ System.debug(route.probabilities);
 Choice selects exactly one caller-defined option. JevForce returns the selected key, full probability map, and Jev confidence.
 
 ```apex
-JevChoiceResult result = JevForce.choice(state, 'Which team should handle this?', choices);
-if (result.confidence >= myApplicationThreshold) {
+JevState state = new JevState()
+    .put('subject', 'Charged twice')
+    .put('description', 'Two identical card charges appear on my statement.');
+
+Map<String, String> choices = new Map<String, String>{
+    'BILLING' => 'Charges, refunds, duplicate payments and invoices',
+    'FRAUD' => 'Unauthorized transactions or suspicious activity',
+    'TECHNICAL' => 'Technical product problems',
+    'ACCOUNT' => 'Login, access and account management'
+};
+
+String question = 'Which support team best matches this case?';
+Decimal applicationThreshold = 0.70;
+
+JevChoiceResult result = JevForce.choice(state, question, choices);
+
+System.debug(result.choice);        // Selected key, such as BILLING
+System.debug(result.confidence);    // Jev confidence
+System.debug(result.probabilities); // Probability for every allowed choice
+
+if (result.confidence >= applicationThreshold) {
     // Salesforce-owned routing policy
 }
 ```
+
+`state`, `question`, `choices`, and `applicationThreshold` are application-owned variables. JevForce sends the first three to Jev; the confidence threshold remains entirely inside Salesforce policy.
 
 A Choice requires 2–255 nonblank option keys. Descriptions may be null, matching the official contract, though meaningful descriptions generally produce a clearer rubric.
 
@@ -183,39 +204,79 @@ A Choice requires 2–255 nonblank option keys. Descriptions may be null, matchi
 Score rates state against 2–10 ordered levels. Level numbers begin at zero and the returned probability-weighted score can be fractional.
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice and nobody is helping me')
+    .put('description', 'This is my third contact and I need this resolved now.')
+    .put('customerTier', 'Platinum')
+    .put('previousCases', 3);
+
+String question = 'Assess the urgency of this customer issue.';
+List<String> rubric = new List<String>{
+    'Routine',
+    'Needs Attention',
+    'Urgent',
+    'Critical'
+};
+
 JevScoreResult urgency = JevForce.score(
     state,
-    'Assess the urgency of this customer issue.',
-    new List<String>{ 'Routine', 'Needs Attention', 'Urgent', 'Critical' }
+    question,
+    rubric
 );
 
-System.debug(urgency.score);
-System.debug(urgency.confidence);
-System.debug(urgency.legend);
-System.debug(urgency.probabilities);
+System.debug(urgency.score);         // Probability-weighted score from 0 to 3
+System.debug(urgency.confidence);    // Jev confidence
+System.debug(urgency.legend);        // Numeric level to rubric-label mapping
+System.debug(urgency.probabilities); // Probability for every rubric level
 ```
+
+The rubric order defines the scale: `Routine` is level `0` and `Critical` is level `3`. Jev may return a fractional score because it is calculated from the complete distribution.
 
 ## Noul
 
 Noul returns the probability that a proposition is true. It deliberately does not return or fabricate a boolean or separate confidence.
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice and nobody is helping me')
+    .put('description', 'This is my third contact and I need help immediately.')
+    .put('customerTier', 'Platinum');
+
+String proposition =
+    'Does the evidence suggest this case warrants immediate human escalation?';
+
 JevNoulResult escalation = JevForce.noul(
     state,
-    'Does the evidence suggest this case warrants immediate human escalation?'
+    proposition
 );
 
-if (escalation.probability >= 0.85) {
-    // 0.85 is application policy, not JevForce policy.
-    caseRecord.IsEscalated = true;
-}
+System.debug(escalation.probability); // Probability from 0 through 1
+
+// Salesforce owns this threshold and the resulting action.
+Decimal escalationThreshold = 0.85;
+Boolean shouldEscalate = escalation.probability >= escalationThreshold;
 ```
+
+Noul returns a probability, not a boolean. `shouldEscalate` is derived by the consuming Salesforce application and is not part of JevForce.
 
 ## One state, multiple questions
 
 The official Jev API evaluates many questions independently against one state in one request. Use this to conserve Salesforce callouts:
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice')
+    .put('description', 'Third contact about the same duplicate payment.');
+
+Map<String, String> choices = new Map<String, String>{
+    'BILLING' => 'Charges, refunds and invoices',
+    'FRAUD' => 'Unauthorized or suspicious activity'
+};
+
+List<String> rubric = new List<String>{
+    'Routine', 'Needs Attention', 'Urgent', 'Critical'
+};
+
 JevRequest request = new JevRequest(state)
     .addChoice('route', 'Which team?', choices)
     .addScore('urgency', 'How urgent?', rubric)
@@ -302,8 +363,14 @@ Debug logging includes only question count, HTTP status, and latency. It exclude
 - `JevApiException`: callout failure, non-2xx status, empty/malformed JSON, or response-contract mismatch
 
 ```apex
+JevState state = new JevState()
+    .put('subject', 'Charged twice')
+    .put('description', 'The duplicate charge is still unresolved.');
+
+String proposition = 'Does this case require immediate human attention?';
+
 try {
-    JevNoulResult result = JevForce.noul(state, question);
+    JevNoulResult result = JevForce.noul(state, proposition);
 } catch (JevConfigurationException error) {
     // Fix local configuration/input; retrying unchanged input will not help.
 } catch (JevApiException error) {
