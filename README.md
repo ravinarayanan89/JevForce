@@ -193,9 +193,30 @@ System.debug(result.probabilities); // Probability for every allowed choice
 if (result.confidence >= applicationThreshold) {
     // Salesforce-owned routing policy
 }
+
+/*
+Live Jev API response captured on 2026-09-23:
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "result": {
+      "type": "choice",
+      "choice": "BILLING",
+      "confidence": 1.0,
+      "probabilities": {
+        "BILLING": 1.0,
+        "FRAUD": 0.0,
+        "TECHNICAL": 0.0,
+        "ACCOUNT": 0.0
+      }
+    }
+  },
+  "usage": { "input_tokens": 383, "output_tokens": 54 }
+}
+*/
 ```
 
-`state`, `question`, `choices`, and `applicationThreshold` are application-owned variables. JevForce sends the first three to Jev; the confidence threshold remains entirely inside Salesforce policy.
+`state`, `question`, `choices`, and `applicationThreshold` are application-owned variables. JevForce sends the first three to Jev; the confidence threshold remains entirely inside Salesforce policy. The response is one observed live result and may change with model versions or input wording.
 
 A Choice requires 2–255 nonblank option keys. Descriptions may be null, matching the official contract, though meaningful descriptions generally produce a clearer rubric.
 
@@ -228,9 +249,36 @@ System.debug(urgency.score);         // Probability-weighted score from 0 to 3
 System.debug(urgency.confidence);    // Jev confidence
 System.debug(urgency.legend);        // Numeric level to rubric-label mapping
 System.debug(urgency.probabilities); // Probability for every rubric level
+
+/*
+Live Jev API response captured on 2026-09-23:
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "result": {
+      "type": "score",
+      "score": 2.56,
+      "confidence": 0.56,
+      "legend": {
+        "0": "Routine",
+        "1": "Needs Attention",
+        "2": "Urgent",
+        "3": "Critical"
+      },
+      "probabilities": {
+        "0": 0.0,
+        "1": 0.0,
+        "2": 0.44,
+        "3": 0.56
+      }
+    }
+  },
+  "usage": { "input_tokens": 362, "output_tokens": 17 }
+}
+*/
 ```
 
-The rubric order defines the scale: `Routine` is level `0` and `Critical` is level `3`. Jev may return a fractional score because it is calculated from the complete distribution.
+The rubric order defines the scale: `Routine` is level `0` and `Critical` is level `3`. Jev may return a fractional score because it is calculated from the complete distribution. The displayed response is one live observation, not a fixed expected value.
 
 ## Noul
 
@@ -255,9 +303,23 @@ System.debug(escalation.probability); // Probability from 0 through 1
 // Salesforce owns this threshold and the resulting action.
 Decimal escalationThreshold = 0.85;
 Boolean shouldEscalate = escalation.probability >= escalationThreshold;
+
+/*
+Live Jev API response captured on 2026-09-23:
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "result": {
+      "type": "noul",
+      "noul": 0.88
+    }
+  },
+  "usage": { "input_tokens": 323, "output_tokens": 20 }
+}
+*/
 ```
 
-Noul returns a probability, not a boolean. `shouldEscalate` is derived by the consuming Salesforce application and is not part of JevForce.
+Noul returns a probability, not a boolean. The raw API field is named `noul`; JevForce exposes it as `escalation.probability`. `shouldEscalate` is derived by the consuming Salesforce application and is not part of JevForce. The displayed response is one live observation and may vary.
 
 ## One state, multiple questions
 
