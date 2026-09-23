@@ -70,9 +70,30 @@ JevChoiceResult route = JevForce.choice(
     }
 );
 
-System.debug(route.choice);
-System.debug(route.confidence);
-System.debug(route.probabilities);
+System.debug(route.choice);        // Observed: BILLING
+System.debug(route.confidence);    // Observed: 1.0
+System.debug(route.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
+
+/*
+Live Jev API response captured on 2026-09-23:
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "result": {
+      "type": "choice",
+      "choice": "BILLING",
+      "confidence": 1.0,
+      "probabilities": {
+        "BILLING": 1.0,
+        "FRAUD": 0.0,
+        "TECHNICAL": 0.0,
+        "ACCOUNT": 0.0
+      }
+    }
+  },
+  "usage": { "input_tokens": 407, "output_tokens": 54 }
+}
+*/
 ```
 
 `choice` is one of the supplied keys. `probabilities` contains Jev's probability for every option. `confidence` is Jev's confidence derived from the distribution.

@@ -160,9 +160,30 @@ JevChoiceResult route = JevForce.choice(
     }
 );
 
-System.debug(route.choice);
-System.debug(route.confidence);
-System.debug(route.probabilities);
+System.debug(route.choice);        // Observed: BILLING
+System.debug(route.confidence);    // Observed: 1.0
+System.debug(route.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
+
+/*
+Live Jev API response captured on 2026-09-23:
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "result": {
+      "type": "choice",
+      "choice": "BILLING",
+      "confidence": 1.0,
+      "probabilities": {
+        "BILLING": 1.0,
+        "FRAUD": 0.0,
+        "TECHNICAL": 0.0,
+        "ACCOUNT": 0.0
+      }
+    }
+  },
+  "usage": { "input_tokens": 413, "output_tokens": 54 }
+}
+*/
 ```
 
 ## Choice
@@ -186,9 +207,9 @@ Decimal applicationThreshold = 0.70;
 
 JevChoiceResult result = JevForce.choice(state, question, choices);
 
-System.debug(result.choice);        // Selected key, such as BILLING
-System.debug(result.confidence);    // Jev confidence
-System.debug(result.probabilities); // Probability for every allowed choice
+System.debug(result.choice);        // Observed: BILLING
+System.debug(result.confidence);    // Observed: 1.0
+System.debug(result.probabilities); // Observed: {BILLING=1.0, FRAUD=0.0, TECHNICAL=0.0, ACCOUNT=0.0}
 
 if (result.confidence >= applicationThreshold) {
     // Salesforce-owned routing policy
@@ -245,10 +266,10 @@ JevScoreResult urgency = JevForce.score(
     rubric
 );
 
-System.debug(urgency.score);         // Probability-weighted score from 0 to 3
-System.debug(urgency.confidence);    // Jev confidence
-System.debug(urgency.legend);        // Numeric level to rubric-label mapping
-System.debug(urgency.probabilities); // Probability for every rubric level
+System.debug(urgency.score);         // Observed: 2.56
+System.debug(urgency.confidence);    // Observed: 0.56
+System.debug(urgency.legend);        // Observed: {0=Routine, 1=Needs Attention, 2=Urgent, 3=Critical}
+System.debug(urgency.probabilities); // Observed: {0=0.0, 1=0.0, 2=0.44, 3=0.56}
 
 /*
 Live Jev API response captured on 2026-09-23:
@@ -298,7 +319,7 @@ JevNoulResult escalation = JevForce.noul(
     proposition
 );
 
-System.debug(escalation.probability); // Probability from 0 through 1
+System.debug(escalation.probability); // Observed: 0.88
 
 // Salesforce owns this threshold and the resulting action.
 Decimal escalationThreshold = 0.85;
